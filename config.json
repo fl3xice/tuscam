@@ -1,3 +1,9 @@
 {
-  "token": "1663172797:AAHoQbU5l2HOzM89QDCIAP8Y7Qxsd6SfcK8"
+  "token": "1663172797:AAHoQbU5l2HOzM89QDCIAP8Y7Qxsd6SfcK8",
+  "mysql": {
+    "hostname": "localhost",
+    "username": "root",
+    "password": "lox",
+    "database_name": "toskam"
+  }
 }
