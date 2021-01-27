@@ -1,5 +1,8 @@
 <?php
 
+// Connect Modules
+require_once "./src/ConditionalExecution.php";
+
 // Constants
 define("CONFIG", json_decode(file_get_contents("config.json"), true));
 define("TELEGRAM_REQUEST_URL", "https://api.telegram.org/bot");
@@ -8,15 +11,20 @@ define("TELEGRAM_REQUEST_URL", "https://api.telegram.org/bot");
 function Bot($token) {
     $Object = json_decode(file_get_contents("php://input"));
 
-    if ($Object->message) {
-        if ($Object->message->text == "/start") {
-            requestApi("sendMessage", $token, [
-               "chat_id" => $Object->message->chat->id,
-               "text" => "*Welcome*",
-               "parse_mode" => "MarkDown"
-            ]);
-        }
-    }
+    $ConditionalMessages = new ConditionalExecution(
+        [
+            $Object->message,
+            $Object->message->text == "/start"
+        ]
+    );
+
+    $ConditionalMessages->Execute(function () use ($token, $Object) {
+        requestApi("sendMessage", $token, [
+            "chat_id" => $Object->message->chat->id,
+            "text" => "*Welcome*",
+            "parse_mode" => "MarkDown"
+        ]);
+    });
 }
 
 // For making requests on api Telegram
