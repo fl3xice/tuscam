@@ -4,17 +4,15 @@
 class ConditionalExecution
 {
 
-    private $execute = false;
+    private $execute = true;
 
     public function __construct($conditions = [false])
     {
-        $ok = 0;
         foreach ($conditions as $condition) {
-            if ($condition) {
-               $ok++;
+            if (!$condition) {
+                $this->execute = false;
             }
         }
-        if ($ok == count($conditions)) $this->execute = true;
     }
 
     public function Execute($fn) : bool {

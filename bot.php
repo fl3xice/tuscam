@@ -2,6 +2,7 @@
 
 // Connect Modules
 require_once "./src/ConditionalExecution.php";
+require_once "./src/TelegramMysql.php";
 
 // Constants
 define("CONFIG", json_decode(file_get_contents("config.json"), true));
@@ -10,21 +11,9 @@ define("TELEGRAM_REQUEST_URL", "https://api.telegram.org/bot");
 // Local descriptions for bot
 function Bot($token) {
     $Object = json_decode(file_get_contents("php://input"));
+    $MySqlConnection = new TelegramMysql(CONFIG);
 
-    $ConditionalMessages = new ConditionalExecution(
-        [
-            $Object->message,
-            $Object->message->text == "/start"
-        ]
-    );
 
-    $ConditionalMessages->Execute(function () use ($token, $Object) {
-        requestApi("sendMessage", $token, [
-            "chat_id" => $Object->message->chat->id,
-            "text" => "*Welcome*",
-            "parse_mode" => "MarkDown"
-        ]);
-    });
 }
 
 // For making requests on api Telegram

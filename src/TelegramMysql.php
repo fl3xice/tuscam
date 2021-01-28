@@ -13,4 +13,12 @@ class TelegramMysql
             $config['mysql']['database_name']
         );
     }
+
+    /**
+     * @return mysqli
+     */
+    public function getMysql(): mysqli
+    {
+        return $this->mysql;
+    }
 }
