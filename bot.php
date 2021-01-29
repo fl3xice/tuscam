@@ -9,6 +9,7 @@ require_once "./src/TelegramMysql.php";
 require_once "./src/Bot/Screen.php";
 require_once "./src/Bot/ObjectHook.php";
 require_once "./src/Bot/Types/Message.php";
+require_once "./src/Bot/DirectBot.php";
 
 // Constants
 define("CONFIG", json_decode(file_get_contents("config.json"), true));
@@ -22,23 +23,7 @@ function Bot($token) {
 
     logDev($Object);
 
-    $WelcomeScreen = new Screen("Приветствую!", [
-        "",
-        "_Надеюсь тебе тут понравится!_"
-    ]);
-
-    $O = new ConditionalExecution([
-        $Hook->isMessage(),
-        $Hook->getMessage()->getText() == "/start"
-    ]);
-
-    $O->Execute(function () use ($WelcomeScreen, $Object, $token) {
-        requestApi("sendMessage", $token, [
-            "chat_id" => $Object->message->chat->id,
-            "parse_mode" => "markdown",
-            "text" => $WelcomeScreen->getText()
-        ]);
-    });
+    HandleCommand($Hook, CONFIG);
 }
 
 // For log

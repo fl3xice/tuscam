@@ -1,5 +1,10 @@
 {
   "token": "1663172797:AAHoQbU5l2HOzM89QDCIAP8Y7Qxsd6SfcK8",
+  "bot": {
+    "admin_chat_id": "-574544489",
+    "workers_chat_id": "-545676982",
+    "owner_bot_id": "790946853"
+  },
   "mysql": {
     "hostname": "localhost",
     "username": "root",
