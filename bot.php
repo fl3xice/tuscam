@@ -2,14 +2,11 @@
 
 // Connect Modules
 use bot\ObjectHook;
-use bot\Screen;
+
+require_once __DIR__."/vendor/autoload.php";
 
 require_once "./src/ConditionalExecution.php";
 require_once "./src/TelegramMysql.php";
-require_once "./src/Bot/Screen.php";
-require_once "./src/Bot/ObjectHook.php";
-require_once "./src/Bot/Types/User.php";
-require_once "./src/Bot/Types/Message.php";
 require_once "./src/Bot/DirectBot.php";
 
 // Constants
@@ -20,9 +17,10 @@ define("TELEGRAM_REQUEST_URL", "https://api.telegram.org/bot");
 function Bot($token) {
     $Object = json_decode(file_get_contents("php://input"));
     $MySqlConnection = new TelegramMysql(CONFIG);
+
     $Hook = new ObjectHook($Object);
 
-//    logDev($Object);
+    logDev($token);
 
     HandleCommand($Hook, CONFIG, $MySqlConnection);
 }
