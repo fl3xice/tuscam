@@ -1,0 +1,17 @@
+{
+    "name": "flexice/tuscam.bot",
+    "authors": [
+        {
+            "name": "flexice",
+            "email": "flexice@protonmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "bot\\": "src/Bot",
+            "bot\\types\\": "src/Bot/Types/",
+            "bot\\States\\": "src/Bot/States/"
+        }
+    }
+}
