@@ -8,6 +8,7 @@ require_once "./src/ConditionalExecution.php";
 require_once "./src/TelegramMysql.php";
 require_once "./src/Bot/Screen.php";
 require_once "./src/Bot/ObjectHook.php";
+require_once "./src/Bot/Types/User.php";
 require_once "./src/Bot/Types/Message.php";
 require_once "./src/Bot/DirectBot.php";
 
@@ -21,9 +22,9 @@ function Bot($token) {
     $MySqlConnection = new TelegramMysql(CONFIG);
     $Hook = new ObjectHook($Object);
 
-    logDev($Object);
+//    logDev($Object);
 
-    HandleCommand($Hook, CONFIG);
+    HandleCommand($Hook, CONFIG, $MySqlConnection);
 }
 
 // For log

@@ -8,7 +8,7 @@
   "mysql": {
     "hostname": "localhost",
     "username": "root",
-    "password": "lox",
-    "database_name": "toskam"
+    "password": "root",
+    "database_name": "tuscam"
   }
 }

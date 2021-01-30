@@ -247,11 +247,11 @@ class Message
     }
 
     /**
-     * @return mixed
+     * @return User
      */
-    public function getForwardFrom()
+    public function getForwardFrom() : User
     {
-        return $this->forward_from;
+        return new User($this->forward_from);
     }
 
     /**
@@ -279,11 +279,11 @@ class Message
     }
 
     /**
-     * @return mixed
+     * @return User
      */
-    public function getFrom()
+    public function getFrom() : User
     {
-        return $this->from;
+        return new User($this->from);
     }
 
     /**
@@ -311,11 +311,11 @@ class Message
     }
 
     /**
-     * @return mixed
+     * @return User
      */
-    public function getLeftChatMembers()
+    public function getLeftChatMembers() : User
     {
-        return $this->left_chat_members;
+        return new User($this->left_chat_members);
     }
 
     /**
@@ -479,11 +479,11 @@ class Message
     }
 
     /**
-     * @return mixed
+     * @return User
      */
-    public function getViaBot()
+    public function getViaBot() : User
     {
-        return $this->via_bot;
+        return new User($this->via_bot);
     }
 
     /**
