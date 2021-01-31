@@ -20,8 +20,6 @@ function Bot($token) {
 
     $Hook = new ObjectHook($Object);
 
-    logDev($token);
-
     HandleCommand($Hook, CONFIG, $MySqlConnection);
 }
 
@@ -30,10 +28,20 @@ function logDev($data) {
     file_put_contents("dev.txt", print_r($data, true)."-----------------"."\n\n".file_get_contents("dev.txt"));
 }
 
+// True Encode JSON
+function jsonEncode($value) {
+    return json_encode($value, JSON_UNESCAPED_UNICODE);
+}
+
+// True Decode
+function jsonDecode($value, $associative) {
+    return json_decode($value, $associative);
+}
+
 // For making requests on api Telegram
-function requestApi($method, $token, $dataSets = []): bool
+function requestApi($method, $dataSets = []): bool
 {
-    $requestUrl = TELEGRAM_REQUEST_URL.$token.'/'.$method.'?'.http_build_query($dataSets);
+    $requestUrl = TELEGRAM_REQUEST_URL.CONFIG['token'].'/'.$method.'?'.http_build_query($dataSets);
     $curl = curl_init($requestUrl);
 
     $result = curl_exec($curl);

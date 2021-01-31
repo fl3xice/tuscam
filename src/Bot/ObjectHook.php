@@ -4,6 +4,7 @@
 namespace bot;
 
 
+use bot\Types\CallBackQuery;
 use bot\types\Message;
 
 class ObjectHook
@@ -27,6 +28,10 @@ class ObjectHook
     public function getMessage() : Message
     {
         return new Message($this->object->message);
+    }
+
+    public function getCallBackQuery() : CallBackQuery {
+        return new CallBackQuery($this->object->callback_query);
     }
 
 }

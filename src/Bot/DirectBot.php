@@ -2,7 +2,7 @@
 
 use bot\ObjectHook;
 use bot\Screen;
-
+use bot\States\RequestState;
 
 function Button($name): string
 {
@@ -12,7 +12,8 @@ function Button($name): string
         "get_options" => "⚙ Настройки",
         "get_ads" => "📦 Объявления",
         "get_info" => "🔆 Информация",
-        "set_back" => "⏪ Назад"
+        "set_back" => "⏪ Назад",
+        "set_skip" => "⏩ Пропустить"
     ];
     return $Buttons[$name];
 }
@@ -27,13 +28,28 @@ function KeyBoard($state = null) : array
                     Button("send_request")
                 ]
             ];
-        case 'fillRequest_1':
+        case 'fillRequest_0':
             return [
                 [
                     "Форум",
                     "Реклама",
                     "Друзья"
                 ],
+                [
+                    Button("set_back")
+                ]
+            ];
+        case 'fillRequest_1':
+            return [
+                [
+                    Button("set_skip")
+                ],
+                [
+                    Button("set_back")
+                ]
+            ];
+        case 'fillRequest_2':
+            return [
                 [
                     Button("set_back")
                 ]
@@ -65,24 +81,36 @@ function Rank($rank = null): string
             return "🧣 Админ";
         case "owner":
             return "👑 Владелец";
+        case "blocked":
+            return "⛔ Заблокирован";
+    }
+}
+
+function State($user, TelegramMysql $mysqli, ObjectHook $Hook)
+{
+    switch ($user[4])
+    {
+        case "fillRequest":
+            $State = new RequestState($mysqli, $Hook);
+            $State->run();
     }
 }
 
 function HandleCommand(ObjectHook $Hook, $config, TelegramMysql $mysqli) {
 
+    logDev($Hook->getCallBackQuery()->data);
+
+    if ($Hook->getMessage()->getChat()->id < 0) {
+        die();
+    }
+
+    // Get User Object from Hook
     $User = $Hook->getMessage()->getFrom();
+    // Get user from database
     $user = $mysqli->createUserIfDontExists($User);
 
-    if ($user[4] != '' || $user[4] != 'start') {
-        switch ($user[4]) {
-            case "fillRequest_1":
-                $mysqli->setDataForState($User, json_encode(["fillRequest" => [
-                    "1" => $Hook->getMessage()->getText()
-                ]]));
-                break;
-        }
-
-        exit();
+    if ($Hook->getMessage()->getText() !== Button("set_back") && $Hook->getMessage()->getText() !== "/start") {
+        State($user, $mysqli, $Hook);
     }
 
     $Commands = [
@@ -90,25 +118,24 @@ function HandleCommand(ObjectHook $Hook, $config, TelegramMysql $mysqli) {
 
             $user = $mysqli->createUserIfDontExists($Hook->getMessage()->getFrom());
 
-            requestApi("sendMessage", $config['token'], [
+            requestApi("sendMessage", [
                 "chat_id" => $Hook->getMessage()->getFrom()->getId(),
                 "text" => "Клавиатура загружена и данные обновлены 🚿",
                 "parse_mode" => "markdown",
                 "reply_markup" => json_encode([
-                    "keyboard" => KeyBoard($user[4]),
+                    "keyboard" => KeyBoard($user[4]."_".$user[3]),
                     "resize_keyboard" => true
                 ])
             ]);
         },
         Button("set_back") => function () use ($config, $Hook, $mysqli) {
             $user = $mysqli->createUserIfDontExists($Hook->getMessage()->getFrom());
-            if ($user[4] == '') {
-                $state = $mysqli->changeUserState($Hook->getMessage()->getFrom(), '');
-            } else {
+            $state = $mysqli->changeUserState($Hook->getMessage()->getFrom(), '');
+            if ($user[5] == 'guest') {
                 $state = $mysqli->changeUserState($Hook->getMessage()->getFrom(), 'start');
             }
 
-            requestApi("sendMessage", $config['token'], [
+            requestApi("sendMessage", [
                 "chat_id" => $Hook->getMessage()->getFrom()->getId(),
                 "text" => "Клавиатура загружена и данные обновлены 🚿",
                 "parse_mode" => "markdown",
@@ -120,78 +147,23 @@ function HandleCommand(ObjectHook $Hook, $config, TelegramMysql $mysqli) {
         },
         Button("send_request") => function () use ($config, $Hook, $mysqli) {
             $User = $Hook->getMessage()->getFrom();
+
+            $mysqli->changeUserState($User, "fillRequest");
+            $mysqli->setInput($User, 0);
+
             $user = $mysqli->createUserIfDontExists($User);
 
-            $mysqli->changeUserState($User, "fillRequest_1");
-
-            requestApi("sendMessage", $config['token'], [
+            requestApi("sendMessage", [
                 "chat_id" => $Hook->getMessage()->getFrom()->getId(),
                 "text" => "Откуда вы о нас узнали?",
                 "parse_mode" => "markdown",
                 "reply_markup" => json_encode([
-                    "keyboard" => KeyBoard('fillRequest_1'),
+                    "keyboard" => KeyBoard('fillRequest_0'),
                     "resize_keyboard" => true
                 ])
             ]);
-
-//            sendRequest($User, $user, $config);
         }
     ];
-
-    function sendRequest($User, $user, $config) {
-        $requestScreen = new Screen("Заявка на добавление", [
-            "*❗ВНИМАНИЕ❗*: Перед добавлением прочтите информацию о пользователе которую он оставил в заявке",
-            "",
-        ]);
-
-
-        $usernameFull = "";
-
-        if ($User->getUsername()) {
-            $usernameFull .= "@".$User->getUsername();
-        } else {
-            $usernameFull .= "Скрыто";
-        }
-
-        if (strlen(trim($User->getFirstName())) != 0) {
-            $usernameFull .= " ".$User->getFirstName();
-        }
-
-        if (strlen(trim($User->getLastName())) != 0) {
-            $usernameFull .= " ".$User->getLastName();
-        }
-
-        $requestScreen->addLine("1️⃣ Имя Пользователя: $usernameFull");
-        $requestScreen->addLine("2️⃣ ID: `".$User->getId()."`");
-        $requestScreen->addLine("3️⃣ Ранг: `".Rank($user[5])."`");
-        $requestScreen->addLine("");
-
-        requestApi("sendMessage", $config['token'], [
-            "chat_id" => $config['bot']['admin_chat_id'],
-            "text" => $requestScreen->getText(),
-            "parse_mode" => "markdown",
-            "reply_markup" => json_encode([
-                "inline_keyboard" => [
-                    [
-                        [
-                            "text" => "💚 Принять заявку",
-                            "callback_data" => "acceptRequest"
-                        ],
-                        [
-                            "text" => "🚫 Отклонить заявку",
-                            "callback_data" => "cancelRequest"
-                        ]
-                    ],
-                    [
-                        [
-                            "text" => "⛔ Отклонить заявку и заблокировать",
-                            "callback_data" => "cancelAndBanRequest"
-                        ]
-                    ]
-                ]
-            ])
-        ]);
-    }
 
     $Cond = new ConditionalExecution([
         $Hook->isMessage()
@@ -200,5 +172,69 @@ function HandleCommand(ObjectHook $Hook, $config, TelegramMysql $mysqli) {
     $Cond->Execute(
         $Commands[trim($Hook->getMessage()->getText())]
     );
+}
+
+function sendRequest($User, $user, $config) {
+    $requestScreen = new Screen("Заявка на добавление", [
+        "*❗ВНИМАНИЕ❗*: Перед добавлением прочтите информацию о пользователе которую он оставил в заявке",
+        "",
+    ]);
+
+    $usernameFull = "";
+
+    if ($User->getUsername()) {
+        $usernameFull .= "@".$User->getUsername();
+    } else {
+        $usernameFull .= "Скрыто";
+    }
+
+    if (strlen(trim($User->getFirstName())) != 0) {
+        $usernameFull .= " ".$User->getFirstName();
+    }
+
+    if (strlen(trim($User->getLastName())) != 0) {
+        $usernameFull .= " ".$User->getLastName();
+    }
+
+    $userDataState = jsonDecode($user[6], true);
+    logDev($userDataState[2]);
+
+    if ($userDataState[2] == "Пропущено") {
+        $userDataState[2] = 0;
+    } else {
+        $userDataState[2] = count($userDataState[2]);
+    }
+
+    $requestScreen->addLine("1️⃣ Имя Пользователя: $usernameFull");
+    $requestScreen->addLine("2️⃣ ID: `".$User->getId()."`");
+    $requestScreen->addLine("3️⃣ Ранг: `".Rank($user[5])."`");
+    $requestScreen->addLine("4️⃣ Откуда узнал: `".$userDataState[1]."`");
+    $requestScreen->addLine("5️⃣ Кол-во скриншотов: `".$userDataState[2]."`");
+
+    requestApi("sendMessage", [
+        "chat_id" => $config['bot']['admin_chat_id'],
+        "text" => $requestScreen->getText(),
+        "parse_mode" => "markdown",
+        "reply_markup" => jsonEncode([
+            "inline_keyboard" => [
+                [
+                    [
+                        "text" => "💚 Принять заявку",
+                        "callback_data" => jsonEncode(["type" => "acceptRequest", ["id" => 1]])
+                    ],
+                    [
+                        "text" => "🚫 Отклонить заявку",
+                        "callback_data" => "cancelRequest"
+                    ]
+                ],
+                [
+                    [
+                        "text" => "⛔ Отклонить заявку и заблокировать",
+                        "callback_data" => "cancelAndBanRequest"
+                    ]
+                ]
+            ]
+        ])
+    ]);
 }
 

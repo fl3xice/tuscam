@@ -168,11 +168,11 @@ class Message
     }
 
     /**
-     * @return mixed
+     * @return Chat
      */
-    public function getChat()
+    public function getChat(): Chat
     {
-        return $this->chat;
+        return new Chat($this->chat);
     }
 
     /**
@@ -439,11 +439,11 @@ class Message
     }
 
     /**
-     * @return mixed
+     * @return Chat
      */
-    public function getSenderChat()
+    public function getSenderChat() : Chat
     {
-        return $this->sender_chat;
+        return new Chat($this->sender_chat);
     }
 
     /**

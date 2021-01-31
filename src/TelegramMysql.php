@@ -39,8 +39,17 @@ class TelegramMysql
         return $users[0];
     }
 
-    public function changeUserState(User $user, $newState = '') {
-        $this->mysql->query("UPDATE `tscm_users` SET `state` = '$newState',`dataForState` = NULL WHERE `tscm_users`.`telegram_id`=".$user->getId());
+    public function getInput(User $user) {
+        return $this->mysql->query("SELECT input FROM `tscm_users` WHERE `telegram_id`=".$user->getId())->fetch_all()[0];
+    }
+
+    public function setInput(User $user, $data) {
+        return $this->mysql->query("UPDATE `tscm_users` SET `input` = '$data' WHERE `telegram_id`=".$user->getId());
+    }
+
+    public function changeUserState(User $user, $newState = ''): string
+    {
+        $this->mysql->query("UPDATE `tscm_users` SET `state` = '$newState',`dataForState` = NULL WHERE `telegram_id`=".$user->getId());
         return $newState;
     }
 
@@ -49,7 +58,7 @@ class TelegramMysql
     }
 
     public function getDataForState(User $user) {
-        return $this->mysql->query("SELECT dataForState FROM `tscm_users` WHERE `tscm_users`.`telegram_id`=".$user->getId())->fetch_all()[0];
+        return $this->mysql->query("SELECT dataForState FROM `tscm_users` WHERE `tscm_users`.`telegram_id`=".$user->getId())->fetch_all()[0][0];
     }
 
     public function setDataForState(User $user, $data) {

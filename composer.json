@@ -6,7 +6,9 @@
             "email": "flexice@protonmail.com"
         }
     ],
-    "require": {},
+    "require": {
+      "ext-json": "*"
+    },
     "autoload": {
         "psr-4": {
             "bot\\": "src/Bot",
