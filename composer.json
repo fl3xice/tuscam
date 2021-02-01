@@ -7,7 +7,10 @@
         }
     ],
     "require": {
-      "ext-json": "*"
+      "ext-json": "*",
+      "ext-curl": "*",
+        "j0k3r/php-imgur-api-client": "^3.0",
+        "ext-mysqli": "*"
     },
     "autoload": {
         "psr-4": {

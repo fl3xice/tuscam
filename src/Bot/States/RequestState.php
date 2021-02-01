@@ -48,8 +48,6 @@ class RequestState extends State
                 $photo = $this->hook->getMessage()->getPhoto();
                 $beforeStateData = jsonDecode($this->mysqli->getDataForState($User), true);
 
-
-
                 if ($text == Button("set_skip")) {
                     $beforeStateData['2'] = "Пропущено";
                     $this->mysqli->setDataForState($User, jsonEncode($beforeStateData));
@@ -78,6 +76,7 @@ class RequestState extends State
                     ])
                 ]);
 
+                $this->mysqli->setInput($User, '');
                 $this->nextStage($stage);
             }
         ];

@@ -11,5 +11,9 @@
     "username": "root",
     "password": "root",
     "database_name": "tuscam"
+  },
+  "imgur": {
+    "client_id" : "5abd6a390303950",
+    "client_secret": "1c4cf2fbda61a9c980415a2b2724e1eaeeab36b5"
   }
 }

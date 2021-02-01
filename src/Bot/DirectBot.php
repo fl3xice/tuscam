@@ -98,8 +98,6 @@ function State($user, TelegramMysql $mysqli, ObjectHook $Hook)
 
 function HandleCommand(ObjectHook $Hook, $config, TelegramMysql $mysqli) {
 
-    logDev($Hook->getCallBackQuery()->data);
-
     if ($Hook->getMessage()->getChat()->id < 0) {
         die();
     }
@@ -118,12 +116,18 @@ function HandleCommand(ObjectHook $Hook, $config, TelegramMysql $mysqli) {
 
             $user = $mysqli->createUserIfDontExists($Hook->getMessage()->getFrom());
 
+            if ($user[5] == 'guest') {
+                $keyboard = 'start';
+            } else {
+                $keyboard = $user[4]."_".$user[3];
+            }
+
             requestApi("sendMessage", [
                 "chat_id" => $Hook->getMessage()->getFrom()->getId(),
                 "text" => "Клавиатура загружена и данные обновлены 🚿",
                 "parse_mode" => "markdown",
                 "reply_markup" => json_encode([
-                    "keyboard" => KeyBoard($user[4]."_".$user[3]),
+                    "keyboard" => KeyBoard($keyboard),
                     "resize_keyboard" => true
                 ])
             ]);
@@ -150,8 +154,6 @@ function HandleCommand(ObjectHook $Hook, $config, TelegramMysql $mysqli) {
 
             $mysqli->changeUserState($User, "fillRequest");
             $mysqli->setInput($User, 0);
-
-            $user = $mysqli->createUserIfDontExists($User);
 
             requestApi("sendMessage", [
                 "chat_id" => $Hook->getMessage()->getFrom()->getId(),
@@ -183,7 +185,7 @@ function sendRequest($User, $user, $config) {
     $usernameFull = "";
 
     if ($User->getUsername()) {
-        $usernameFull .= "@".$User->getUsername();
+        $usernameFull .= "[@".$User->getUsername()."](https://t.me/".$User->getUsername().")";
     } else {
         $usernameFull .= "Скрыто";
     }
@@ -197,21 +199,29 @@ function sendRequest($User, $user, $config) {
     }
 
     $userDataState = jsonDecode($user[6], true);
-    logDev($userDataState[2]);
 
     if ($userDataState[2] == "Пропущено") {
-        $userDataState[2] = 0;
+        $screen = "`(Отсутствует)`";
     } else {
-        $userDataState[2] = count($userDataState[2]);
+
+        $res = requestApi("getFile", [
+            "file_id" => $userDataState[2][2]['file_id'],
+        ]);
+
+        $result = jsonDecode($res, true)['result'];
+
+        $link = uploadFile(TELEGRAM_FILES_STORAGE.$config['token']."/".$result['file_path'])['link'];
+
+        $screen = "[(Присутствует)]($link)";
     }
 
     $requestScreen->addLine("1️⃣ Имя Пользователя: $usernameFull");
     $requestScreen->addLine("2️⃣ ID: `".$User->getId()."`");
     $requestScreen->addLine("3️⃣ Ранг: `".Rank($user[5])."`");
     $requestScreen->addLine("4️⃣ Откуда узнал: `".$userDataState[1]."`");
-    $requestScreen->addLine("5️⃣ Кол-во скриншотов: `".$userDataState[2]."`");
+    $requestScreen->addLine("5️⃣ Скриншот: ".$screen."");
 
-    requestApi("sendMessage", [
+    $r = requestApi("sendMessage", [
         "chat_id" => $config['bot']['admin_chat_id'],
         "text" => $requestScreen->getText(),
         "parse_mode" => "markdown",

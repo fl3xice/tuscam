@@ -8,10 +8,12 @@ require_once __DIR__."/vendor/autoload.php";
 require_once "./src/ConditionalExecution.php";
 require_once "./src/TelegramMysql.php";
 require_once "./src/Bot/DirectBot.php";
+require_once "./src/screenshotGenerator.php";
 
 // Constants
 define("CONFIG", json_decode(file_get_contents("config.json"), true));
 define("TELEGRAM_REQUEST_URL", "https://api.telegram.org/bot");
+define("TELEGRAM_FILES_STORAGE", "https://api.telegram.org/file/bot");
 
 // Local descriptions for bot
 function Bot($token) {
@@ -39,16 +41,25 @@ function jsonDecode($value, $associative) {
 }
 
 // For making requests on api Telegram
-function requestApi($method, $dataSets = []): bool
+function requestApi($method, $dataSets = [])
 {
-    $requestUrl = TELEGRAM_REQUEST_URL.CONFIG['token'].'/'.$method.'?'.http_build_query($dataSets);
-    $curl = curl_init($requestUrl);
+    $requestUrl = TELEGRAM_REQUEST_URL.CONFIG['token'].'/'.$method;
+    $curl = curl_init();
+
+    curl_setopt_array($curl, array(
+        CURLOPT_URL => $requestUrl,
+        CURLOPT_RETURNTRANSFER => 1,
+        CURLOPT_HEADER => false,
+        CURLOPT_POST => 1,
+        CURLOPT_POSTFIELDS => ($dataSets)
+    ));
 
     $result = curl_exec($curl);
-    curl_close($curl);
 
+    curl_close($curl);
     return $result;
 }
+
 
 // Run Bot Scripts
 Bot(CONFIG['token']);
