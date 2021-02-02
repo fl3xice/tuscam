@@ -16,7 +16,8 @@
         "psr-4": {
             "bot\\": "src/Bot",
             "bot\\types\\": "src/Bot/Types/",
-            "bot\\States\\": "src/Bot/States/"
+            "bot\\States\\": "src/Bot/States/",
+            "bot\\Queries\\": "src/Bot/Queries"
         }
     }
 }

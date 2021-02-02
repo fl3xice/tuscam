@@ -21,9 +21,16 @@ class RequestState extends State
             function () use ($stage) {
 
                 $text = $this->hook->getMessage()->getText();
+                $User = $this->hook->getMessage()->getFrom();
+
+                if ($text == Button('set_back')) {
+                    $this->mysqli->setInput($User, '');
+                    $this->mysqli->changeUserState($User, 'start');
+                    die();
+                }
 
                 if (strlen($text) > 50) {
-                    ReplyOf::replyOfError($this->hook->getMessage()->getFrom()->getId(),"Введите текст не длинее 50-ти символом");
+                    ReplyOf::replyOfError($User->getId(),"Введите текст не длинее 50-ти символом");
                     die();
                 }
 
@@ -48,6 +55,11 @@ class RequestState extends State
                 $photo = $this->hook->getMessage()->getPhoto();
                 $beforeStateData = jsonDecode($this->mysqli->getDataForState($User), true);
 
+                if ($text == Button('set_back')) {
+                    $this->prevStage($stage);
+                    die();
+                }
+
                 if ($text == Button("set_skip")) {
                     $beforeStateData['2'] = "Пропущено";
                     $this->mysqli->setDataForState($User, jsonEncode($beforeStateData));
@@ -68,16 +80,13 @@ class RequestState extends State
 
                 requestApi("sendMessage", [
                     "chat_id" => $this->hook->getMessage()->getFrom()->getId(),
-                    "text" => "УХЙ",
-                    "parse_mode" => "markdown",
-                    "reply_markup" => jsonEncode([
-                        "keyboard" => KeyBoard('fillRequest_2'),
-                        "resize_keyboard" => true
-                    ])
+                    "text" => "Ваша заявка отправлена ✅ как только администраторы примут её вы сможете продолжить пользование ботом",
+                    "parse_mode" => "markdown"
                 ]);
 
+
                 $this->mysqli->setInput($User, '');
-                $this->nextStage($stage);
+                $this->mysqli->changeUserState($User, 'wait');
             }
         ];
 

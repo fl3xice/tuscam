@@ -19,4 +19,7 @@ abstract class State
     public function nextStage($nowStage) {
         $this->mysqli->setInput($this->hook->getMessage()->getFrom(), $nowStage+1);
     }
+    public function prevStage($nowStage) {
+        $this->mysqli->setInput($this->hook->getMessage()->getFrom(), $nowStage-1);
+    }
 }

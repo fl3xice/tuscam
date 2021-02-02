@@ -12,6 +12,7 @@ class CallBackQuery
     public $chat_instance;
     public $data;
     public $game_short;
+    private $message;
 
     public function __construct($callback)
     {
@@ -21,6 +22,7 @@ class CallBackQuery
         $this->chat_instance = $callback->chat_instance;
         $this->data = $callback->data;
         $this->game_short = $callback->game_short;
+        $this->message = $callback->message;
     }
 
     /**
@@ -29,5 +31,13 @@ class CallBackQuery
     public function getFrom() : User
     {
         return new User($this->from);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getMessage() : Message
+    {
+        return new Message($this->message);
     }
 }

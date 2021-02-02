@@ -1,8 +1,13 @@
 <?php
 
+use bot\CallBackHandler;
 use bot\ObjectHook;
+use bot\Queries\Query;
 use bot\Screen;
 use bot\States\RequestState;
+use bot\States\WaitState;
+use bot\Types\CallBackQuery;
+use bot\types\User;
 
 function Button($name): string
 {
@@ -17,6 +22,7 @@ function Button($name): string
     ];
     return $Buttons[$name];
 }
+
 
 
 function KeyBoard($state = null) : array
@@ -93,6 +99,10 @@ function State($user, TelegramMysql $mysqli, ObjectHook $Hook)
         case "fillRequest":
             $State = new RequestState($mysqli, $Hook);
             $State->run();
+            break;
+        case "wait":
+            $State = new WaitState($mysqli, $Hook);
+            $State->run();
     }
 }
 
@@ -102,14 +112,17 @@ function HandleCommand(ObjectHook $Hook, $config, TelegramMysql $mysqli) {
         die();
     }
 
+    if ($Hook->getCallBackQuery()->data) {
+        CallBackHandler::Handle($Hook->getCallBackQuery(), $mysqli);
+        die();
+    }
+
     // Get User Object from Hook
     $User = $Hook->getMessage()->getFrom();
     // Get user from database
     $user = $mysqli->createUserIfDontExists($User);
 
-    if ($Hook->getMessage()->getText() !== Button("set_back") && $Hook->getMessage()->getText() !== "/start") {
-        State($user, $mysqli, $Hook);
-    }
+    State($user, $mysqli, $Hook);
 
     $Commands = [
         "/start" => function () use ($config, $Hook, $mysqli) {
@@ -134,6 +147,7 @@ function HandleCommand(ObjectHook $Hook, $config, TelegramMysql $mysqli) {
         },
         Button("set_back") => function () use ($config, $Hook, $mysqli) {
             $user = $mysqli->createUserIfDontExists($Hook->getMessage()->getFrom());
+
             $state = $mysqli->changeUserState($Hook->getMessage()->getFrom(), '');
             if ($user[5] == 'guest') {
                 $state = $mysqli->changeUserState($Hook->getMessage()->getFrom(), 'start');
@@ -176,7 +190,7 @@ function HandleCommand(ObjectHook $Hook, $config, TelegramMysql $mysqli) {
     );
 }
 
-function sendRequest($User, $user, $config) {
+function sendRequest(User $User, $user, $config) {
     $requestScreen = new Screen("Заявка на добавление", [
         "*❗ВНИМАНИЕ❗*: Перед добавлением прочтите информацию о пользователе которую он оставил в заявке",
         "",
@@ -205,13 +219,12 @@ function sendRequest($User, $user, $config) {
     } else {
 
         $res = requestApi("getFile", [
-            "file_id" => $userDataState[2][2]['file_id'],
+            "file_id" => $userDataState[2][count($userDataState[2])-1]['file_id'],
         ]);
 
         $result = jsonDecode($res, true)['result'];
-
-        $link = uploadFile(TELEGRAM_FILES_STORAGE.$config['token']."/".$result['file_path'])['link'];
-
+        $uploaded = uploadFile(TELEGRAM_FILES_STORAGE.$config['token']."/".$result['file_path']);
+        $link = $uploaded['link'];
         $screen = "[(Присутствует)]($link)";
     }
 
@@ -230,17 +243,28 @@ function sendRequest($User, $user, $config) {
                 [
                     [
                         "text" => "💚 Принять заявку",
-                        "callback_data" => jsonEncode(["type" => "acceptRequest", ["id" => 1]])
-                    ],
+                        "callback_data" => jsonEncode([
+                            "type" => Query::REQUEST_ACCEPT,
+                            "telegram_id" => $User->getId()
+                        ])
+                    ]
+                ],
+                [
                     [
                         "text" => "🚫 Отклонить заявку",
-                        "callback_data" => "cancelRequest"
+                        "callback_data" => jsonEncode([
+                            "type" => Query::REQUEST_DECLINE,
+                            "telegram_id" => $User->getId()
+                        ])
                     ]
                 ],
                 [
                     [
                         "text" => "⛔ Отклонить заявку и заблокировать",
-                        "callback_data" => "cancelAndBanRequest"
+                        "callback_data" => jsonEncode([
+                            "type" => Query::REQUEST_DECLINE_AND_BLOCK,
+                            "telegram_id" => $User->getId()
+                        ])
                     ]
                 ]
             ]
