@@ -122,6 +122,10 @@ function HandleCommand(ObjectHook $Hook, $config, TelegramMysql $mysqli) {
     // Get user from database
     $user = $mysqli->createUserIfDontExists($User);
 
+    if ($user[5] == "blocked") {
+        die();
+    }
+
     State($user, $mysqli, $Hook);
 
     $Commands = [

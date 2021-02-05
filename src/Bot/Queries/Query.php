@@ -6,6 +6,7 @@ namespace bot\Queries;
 use bot\ReplyOf;
 use bot\Types\CallBackQuery;
 use bot\types\User;
+use TelegramMysql;
 
 class Query
 {
@@ -19,7 +20,7 @@ class Query
     private $User;
     private $user;
 
-    public function __construct(CallBackQuery $query, \TelegramMysql $mysqli)
+    public function __construct(CallBackQuery $query, TelegramMysql $mysqli)
     {
         $this->query = $query;
         $this->mysqli = $mysqli;
@@ -27,13 +28,15 @@ class Query
         $this->user = $this->mysqli->createUserIfDontExists($this->User);
     }
 
-    public function RequestAccept() {
+    private function getTargetUser($data) {
+        return $this->mysqli->getUserByDb(jsonDecode($data, true)['telegram_id']);
+    }
+
+    private function RequestVerify($targetUser) {
         if ($this->user[5] != "owner" && $this->user[5] != "support" && $this->user[5] != "admin") {
             ReplyOf::replyOfError($this->query->getMessage()->getChat()->id, $this->User->getFirstName().", Вы не являетесь уполномоченым лицом чтобы принять заявку пользователя");
             die();
         }
-
-        $targetUser = $this->mysqli->getUserByDb(jsonDecode($this->query->data, true)['telegram_id']);
 
         if ($targetUser[4] != "wait") {
             ReplyOf::replyOfError($this->query->getMessage()->getChat()->id, $this->User->getFirstName().", Этот пользователь не отправил заявку");
@@ -44,6 +47,13 @@ class Query
             ReplyOf::replyOfError($this->query->getMessage()->getChat()->id, $this->User->getFirstName().", Этот пользователь уже проходил проверку и имеет ранг");
             die();
         }
+    }
+
+    public function RequestAccept() {
+
+        $targetUser = $this->getTargetUser($this->query->data);
+
+        $this->RequestVerify($targetUser);
 
         $this->mysqli->changeUserRank($targetUser[1], 'worker');
         $this->mysqli->changeUserStateWithID($targetUser[1], '');
@@ -60,41 +70,37 @@ class Query
     }
 
     public function RequestDecline() {
-        if ($this->user[5] != "owner" || $this->user[5] != "support" || $this->user[5] != "admin") {
-            ReplyOf::replyOfError($this->query->getMessage()->getChat()->id, $this->User->getFirstName().", Вы не являетесь уполномоченым лицом чтобы принять заявку пользователя");
-            die();
-        }
 
-        $targetUser = $this->mysqli->getUserByDb(jsonDecode($this->query->data, true)['telegram_id']);
+        $targetUser = $this->getTargetUser($this->query->data);
 
-        if ($targetUser[4] != "wait") {
-            ReplyOf::replyOfError($this->query->getMessage()->getChat()->id, $this->User->getFirstName().", Этот пользователь не отправил заявку");
-            die();
-        }
+        $this->RequestVerify($targetUser);
 
-        if ($targetUser[5] != "guest") {
-            ReplyOf::replyOfError($this->query->getMessage()->getChat()->id, $this->User->getFirstName().", Этот пользователь уже проходил проверку и имеет ранг");
-            die();
-        }
-
-        $this->mysqli->changeUserRank($targetUser[1], 'worker');
-        $this->mysqli->changeUserStateWithID($targetUser[1], '');
-        ReplyOf::replyOfSuccess($this->query->getMessage()->getChat()->id, "Пользователь успешно принят");
+        $this->mysqli->changeUserStateWithID($targetUser[1], 'start');
+        ReplyOf::replyOfSuccess($this->query->getMessage()->getChat()->id, "Заявка пользователя успешно отклонена");
         requestApi("sendMessage", [
             "chat_id" => $targetUser[1],
-            "text" => "*Ваша заявка была принята*",
+            "text" => "*Ваша заявка была отклонена*",
             "parse_mode" => "MarkDown",
             "reply_markup" => json_encode([
-                "keyboard" => KeyBoard(''),
+                "keyboard" => KeyBoard('start'),
                 "resize_keyboard" => true
             ])
         ]);
     }
 
     public function RequestDeclineAndBlock() {
-        if ($this->user[5] != "owner" || $this->user[5] != "support" || $this->user[5] != "admin") {
-            ReplyOf::replyOfError($this->query->getMessage()->getChat()->id, $this->User->getFirstName().", Вы не являетесь уполномоченым лицом чтобы принять заявку пользователя");
-            die();
-        }
+
+        $targetUser = $this->getTargetUser($this->query->data);
+
+        $this->RequestVerify($targetUser);
+
+        $this->mysqli->changeUserRank($targetUser[1], 'blocked');
+        $this->mysqli->changeUserStateWithID($targetUser[1], '');
+        ReplyOf::replyOfSuccess($this->query->getMessage()->getChat()->id, "Заявка пользователя успешно отклонена и пользователь заблокирован");
+        requestApi("sendMessage", [
+            "chat_id" => $targetUser[1],
+            "text" => "*Ваша заявка была отклонена и вы были заблокированны*",
+            "parse_mode" => "MarkDown"
+        ]);
     }
 }
